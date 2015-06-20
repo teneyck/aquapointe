@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"> 
+  <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+  <title>AquaPointe - Network Settings</title>
+  <link href="style.css" rel="Stylesheet" type="text/css" />
+  <script src="js/autobahn.min.js"></script>
+  <script>
+    // the WAMP session we'll be using
+    //
+    var session = null;
+    var statusMessage = null;
+    var networkStatusMessage = null;
+    
+    function navigateToNewPage(name) {
+        window.location.href = "http://" + name + ".local:8000"
+    }
+    
+    function renameDevice() {
+        var name = document.getElementById('host_name').value;
+        
+        if (name == "") {
+            statusMessage.innerHTML = "The host name cannot be blank, please try again.";
+            return false;
+        }
+        
+        if(confirm('Changing the host name will restart the device.')) {
+            
+        }
+        else {
+            return false;
+        }
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        
+        var token = localStorage.getItem('token');
+        
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    console.log(res);
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+        
+        session.call("com.aquapointe.rename",[name])
+        alert("Your device is restarting, please wait and you will be redirected automatically.");
+        setTimeout(function () {navigateToNewPage(name);}, 120000);
+        
+        return true;    
+    }
+    
+    function configureNetwork() {
+    
+        var networkName = document.getElementById('network_name').value;
+        var password = document.getElementById('network_password').value;
+        
+        if (networkName == "") {
+            networkStatusMessage.innerHTML = "The Network Name cannot be blank, please try again.";
+            return false;
+        }
+        
+        if (password == "") {
+            networkStatusMessage.innerHTML = "The Network Password cannot be blank, please try again.";
+            return false;
+        }
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        
+        var token = localStorage.getItem('token');
+        
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    console.log(res);
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+        
+        session.call("com.aquapointe.configurenetwork", [networkName, password]).then(
+            function (res) {
+                console.log(res);
+                if (res == true) {
+                    window.location.href = "main.html";
+                }
+            }
+        ); 
+        return true;    
+    }
+    
+    function checkInput(event) {
+    	if ((event.shiftKey && event.keyCode == 45) || event.which != 8 && event.which != 0 && (event.which < 48 || event.which > 57)) {
+			if (event.which == 46 || event.which == 45 || (event.which >= 65 && event.which <= 90) || (event.which >= 97 && event.which <= 122))
+				return true;
+			return false;
+		}
+		return true;
+	}
+    
+    function getNetworkSettings() {
+        var name = document.getElementById('host_name');
+        var networkName = document.getElementById('network_name');
+        
+        if (session == null) {
+            console.log("Error: no session");
+            window.location.href = "index.html";
+            return;
+        }
+        
+        session.call("com.aquapointe.getnetworksettings").then(
+                function (res) {
+                    name.value = res[0];
+                    networkName.value = res[1];
+                }
+            );
+    }
+    
+    function cancelRename() {
+        window.location.href = "main.html";
+    }
+    
+    window.onload = function () {
+        // Interface Elements
+        //
+        statusMessage = document.getElementById('status_message');
+        networkStatusMessage = document.getElementById('network_status_message');
+        
+        // the URL of the WAMP Router
+        //
+        var wsuri;
+        if (document.location.origin == "file://") {
+           wsuri = "ws://localhost:8080/ws";
+        } else {
+           wsuri = "ws://" + document.location.hostname + ":8080";
+        }
+        
+        // connect to WAMP server
+        //
+        var connection = new autobahn.Connection({
+           url: wsuri,
+           realm: 'realm1'
+        });
+
+        connection.onopen = function (new_session) {
+           console.log("connected to " + wsuri);
+
+           session = new_session;
+           getNetworkSettings();
+        };
+        
+        connection.onclose = function (reason, details) {
+            console.log("connection gone", reason, details);
+            new_session = null;
+         };
+
+        connection.open();
+     };
+  </script>
+  <style>
+        form {
+            width: 600px;    
+        }
+        
+        .label {
+            width: 260px;
+        }
+
+        #host_name, #network_name, #network_password {
+            width: 324px;
+        }
+  
+  </style>
+</head>
+<body>
+    <div id="content">
+        <div id="content_container">
+            <div id="title_container">
+                <h1>AquaPointe</h1>
+            </div><!--end title container-->
+            <form onSubmit="return renameDevice()" name="rename_form" action="javascript:void(0);">
+                <p><span class="label">Host Name:&nbsp;</span><input id="host_name" type="text" maxlength="15" onkeypress="return checkInput(event);"></p>
+                <p id="status_message"></p>
+                <br>
+                <p class="center">* The host name is the name of the device on the network, and is used in the URL bar of your browser to connect to the device.</p>
+                <br>
+                <p class="center"><input type="button" value="Cancel" onclick="cancelRename()">&nbsp;<input type="submit" value="Save"></p>
+            </form>
+            <form onSubmit="return configureNetwork()" name="network_form" action="javascript:void(0);">
+                <p><span class="label">Network Name:&nbsp;</span><input id="network_name" type="text" maxlength="30"></p>
+                <p><span class="label">Network Password:&nbsp;</span><input id="network_password" type="text" maxlength="30"></p>
+                <p id="network_status_message"></p>
+                <br>
+                <p class="center"><input type="button" value="Cancel" onclick="cancelRename()">&nbsp;<input type="submit" value="Save"></p>
+            </form>
+            <br>
+            <br>
+            <img src="images/grass.png" width="960" alt="Waves">
+        </div><!--end content_container-->
+    </div> <!--end section-->    
+</body>
+</html>

@@ -1,0 +1,66 @@
+@charset "UTF-8";
+
+/* TYPOGRAPHY
+   This CSS Document will contain all the 
+   type style used thoughout the web site.
+*/
+
+/* Basic CSS Format
+selector {
+	property:value 
+}
+*/
+
+body {
+	font-family: verdana;
+}
+
+p {
+    font-size: 12pt;
+    color: #839496;
+}
+
+input {
+    font-size: 16pt;
+    color: #073642;
+}
+
+select {
+    font-size: 16pt;
+    color: #073642;
+}
+
+h1 {
+	color: #839496;
+	font-size: 64pt;
+	-webkit-text-stroke: 1px #073642;
+}
+
+h2 {
+	color: #dc322f;
+	font-size: 24pt;
+}
+
+h3 {
+	color: #839496;
+	font-size: 18pt;
+}
+
+h4 {
+    margin-top: 10px;
+    border-bottom: 1px #073642 solid;
+    text-align: center;
+    color: #073642;
+    font-weight: bold;
+    font-size: 16pt;
+}
+
+.label {
+    font-size: 18pt;
+}
+
+#status_message, #network_status_message {
+    font-size: 12pt;
+    color: #dc322f;
+}
+

@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/> 
+  <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+  <title>AquaPointe - Device Options</title>
+  <link href="style.css" rel="Stylesheet" type="text/css" />
+  <script src="js/autobahn.min.js"></script>
+  <script>
+    // the WAMP session we'll be using
+    //
+    var session = null;
+    var descriptionField;
+    var frequencyDropDown;
+    var statusMessage;
+    
+    function cancelRename() {
+        window.location.href = "main.html";
+    }
+    
+    function changeDescription() {
+    	var description = descriptionField.value;
+        
+        if (description == "") {
+            statusMessage.innerHTML = "The Description cannot be blank, please try again.";
+            return false;
+        }
+        
+        if (session == null) {
+            console.log("Error: no session");
+            window.location.href = "index.html";
+            return false;
+        }
+        
+        session.call("com.aquapointe.setdescription",[description]).then(
+            function (res) {
+                console.log(res);
+                if (res == true) {
+                    window.location.href = "main.html";
+                }
+            }
+        ); 
+        
+        return true;
+    }
+    
+    function changeFrequency() {
+    	var index = frequencyDropDown.selectedIndex;
+    	
+    	if (session == null) {
+            console.log("Error: no session");
+            window.location.href = "index.html";
+            return false;
+        }
+        
+        session.call("com.aquapointe.setfrequency",[index]).then(
+            function (res) {
+                console.log(res);
+                if (res == true) {
+                    window.location.href = "main.html";
+                }
+            }
+        );
+        
+        return true;
+    }
+    
+    function getDeviceSettings() {
+        if (session == null) {
+            console.log("Error: no session");
+            window.location.href = "index.html";
+            return;
+        }
+        
+        session.call("com.aquapointe.getdevicesettings").then(
+                function (res) {
+                    descriptionField.value = res[0];
+                    frequencyDropDown.selectedIndex = res[1];
+                }
+            );
+    }
+    
+    window.onload = function () {
+        // Interface Elements
+        //
+        descriptionField = document.getElementById('device_description');
+        frequencyDropDown = document.getElementById('frequency_selection');
+        statusMessage = document.getElementById('status_message');
+        
+        // the URL of the WAMP Router
+        //
+        var wsuri;
+        if (document.location.origin == "file://") {
+           wsuri = "ws://localhost:8080/ws";
+        } else {
+           wsuri = "ws://" + document.location.hostname + ":8080";
+        }
+        
+        // connect to WAMP server
+        //
+        var connection = new autobahn.Connection({
+           url: wsuri,
+           realm: 'realm1'
+        });
+
+        connection.onopen = function (new_session) {
+            console.log("connected to " + wsuri);
+
+            session = new_session;
+            getDeviceSettings();
+        };
+        
+        connection.onclose = function (reason, details) {
+            console.log("connection gone", reason, details);
+            session = null;
+         };
+
+        connection.open();
+     };
+  </script>
+  <style>
+    form {
+		width: 700px;    
+	}
+	
+	.label {
+		width: 310px;
+	}
+	
+	#device_description {
+	    width: 524px;
+	}
+  </style>
+</head>
+<body>
+    <div id="content">
+        <div id="content_container">
+            <div id="title_container">
+                <h1>AquaPointe</h1>
+            </div><!--end title container-->
+            <form onSubmit="return changeDescription()" name="description_form" action="javascript:void(0);">
+                <p><span class="label" style="width: 160px;">Description:&nbsp;</span><input id="device_description" type="text" maxlength="50"></p>
+                <p id="status_message"></p>
+                <br>
+                <p class="center"><input type="button" value="Cancel" onclick="cancelRename()">&nbsp;<input type="submit" value="Save"></p>
+            </form>
+            <form onSubmit="return changeFrequency()" name="frequency_form" action="javascript:void(0);">
+                <p class="center"><span class="label">Measurement Frequency:</span>
+                    <select id="frequency_selection">
+                        <option value="Days">Daily</option>
+                        <option value="Hours">Hourly</option>
+                        <option value="Minutes">Minute</option>
+                    </select>
+                </p>
+                <br>
+                <p class="center">* The measurement frequency controls how often measurement data is saved.</p>
+                <br>
+                <p class="center">
+                    <input type="button" value="Cancel" onclick="cancelRename()">&nbsp;<input type="submit" value="Save">
+                </p>
+            </form>
+            <br>
+            <br>
+            <img src="images/grass.png" width="960" alt="Waves">
+        </div>
+    </div>
+</body>
+</html>

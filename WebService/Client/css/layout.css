@@ -1,0 +1,33 @@
+@charset "UTF-8";
+
+/* LAYOUT
+   This CSS document contains all the columns and 
+   formatting for the content within all the pages.	
+*/
+
+/* Basic CSS Format
+selector {
+	property:value 
+}
+*/
+
+/* -------- COLUMN LAYOUTS -------*/
+/* -- Column Sizes -- */
+    .one_fourth{ width: 220px; }
+    .one_third{ width: 300px; }
+    .one_half{ width: 460px; }
+    .two_third{ width: 620px; }
+    .three_fourth{ width: 700px; }
+
+/* -- Column Margin & Float-- */
+    .one_half,.one_third,.two_third,
+    .three_fourth,.one_fourth{
+    position: relative;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 20px;
+    float: left;
+}
+
+/* -- Clear (aka Reset) -- */
+    .resetColumnSet{ clear: left; }

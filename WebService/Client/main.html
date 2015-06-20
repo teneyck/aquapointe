@@ -1,0 +1,447 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"> 
+  <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+  <title>AquaPointe</title>
+  <link href="style.css" rel="Stylesheet" type="text/css" />
+  <script src="js/autobahn.min.js"></script>
+  <script src="js/smoothie.js"></script>
+  <script>
+    // the WAMP session we'll be using
+    //
+    var connection = null;
+    var session = null;
+    var hostName = null;
+    var menuVisible = false;
+    
+    var phValue = null;
+    var salValue = null;
+    var parValue = null;
+    var tempValue = null;
+    var flowValue = null;
+
+    var line0 = new TimeSeries();
+    var line1 = new TimeSeries();
+    var line2 = new TimeSeries();
+    var line3 = new TimeSeries();
+    
+    function showMenu() {
+        if (menuVisible) {
+            menuVisible = false;
+            document.getElementById('config_menu').style.visibility = "hidden";
+        }
+        else {
+            menuVisible = true;
+            document.getElementById('config_menu').style.visibility = "visible";
+        }
+    }
+    
+    function configureNetwork() {
+        var token = localStorage.getItem('token');
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                    else {
+                        window.location.href = "network.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+    }
+    
+    function changePassword() {
+        var token = localStorage.getItem('token');
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                    else {
+                        window.location.href = "passwordchange.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+    }
+    
+    function downloadCSV() {
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        
+        session.call("com.aquapointe.downloadcsv").then(
+                function (res) {
+                    if (res != "null") {
+                        var downloadLink = document.createElement('a');
+                        downloadLink.setAttribute('href', "downloads/" + res);
+                        downloadLink.setAttribute('target', '_self');
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                    }
+                }
+            );
+    }
+    
+    function configureDevice() {
+        var token = localStorage.getItem('token');
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    console.log(res);
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                    else {
+                        window.location.href = "device.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+    }
+    
+    function logout() {
+        if (localStorage.getItem('token') != null) {
+            localStorage.removeItem('token');
+        }
+        connection.close();  
+        window.location.href = "index.html";
+    }
+    
+    function validateToken() {
+        var token = localStorage.getItem('token');
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        if (token != null) {
+            session.call("com.aquapointe.validate", [token]).then(
+                function (res) {
+                    if (res == false) {
+                        window.location.href = "index.html";
+                    }
+                }
+            );
+        }
+        else {
+            window.location.href = "index.html";
+        }
+    }
+    
+    function populateName() {
+        
+        if (session == null) {
+            console.log("No Session");
+            return false;
+        }
+        
+        var select = document.getElementById('tank_selector');
+        session.call("com.aquapointe.getdevicelist").then(
+                function (res) {
+                    console.log(res);
+                    
+                    for (var i=0; i < res.length; ++i){
+                        var opt = document.createElement('option');
+                        opt.text = res[i];
+                        opt.value = res[i];
+                        select.options.add(opt);
+                    }
+                }
+            );
+            
+        var description = document.getElementById('description');
+        session.call("com.aquapointe.getdescription").then(
+                function (res) {
+                    description.innerHTML = res;
+                }
+            );
+    }
+    
+    function selectionChanged() {
+        var select = document.getElementById('tank_selector');
+        window.location.href = "http://" + select.value;
+        
+    }
+
+    function onData(args) {
+        var payload = args[0];
+
+        if (payload.ph !== null) {
+            phValue.innerHTML = payload.ph;
+            line0.append(new Date().getTime(), payload.ph);
+        }
+
+        if (payload.sal !== null) {
+            salValue.innerHTML = payload.sal;
+            line1.append(new Date().getTime(), payload.sal);    
+        }
+
+        if (payload.par !== null) {
+            parValue.innerHTML = payload.par;
+            line2.append(new Date().getTime(), payload.par);
+        }
+
+        if (payload.temp !== null) {
+            tempValue.innerHTML = payload.temp;
+            line3.append(new Date().getTime(), payload.temp);
+        }
+
+        if (payload.flow !== null) {
+            if (payload.flow == 1) {
+                flowValue.innerHTML = "On";
+            }
+            else {
+                flowValue.innerHTML = "Off";
+            }
+        } 
+    } 
+    
+    function onNewHost(args) {
+        var hostList = args[0];
+        var select = document.getElementById('tank_selector');
+        select.options.length = 0;
+        for (var i=0; i < hostList.length; ++i){
+            var opt = document.createElement('option');
+            opt.text = hostList[i];
+            opt.value = hostList[i];
+            select.options.add(opt);
+        }
+    }
+    
+    window.onload = function () {
+       
+        // Set the default state of the configuration menu to not showing
+        document.getElementById('config_menu').style.visibility = "hidden";
+        
+        // Clear out the tank selection dropdown and populate it from the server
+        var select = document.getElementsByTagName('select')[0];
+        select.options.length = 0; 
+        
+        // Value text on the page
+        phValue = document.getElementById('phValue');
+        salValue = document.getElementById('salValue');
+        parValue = document.getElementById('parValue');
+        tempValue = document.getElementById('tempValue');
+        flowValue = document.getElementById('flowValue');
+        
+        
+        var phGraph = new SmoothieChart({grid: {strokeStyle: 'rgb(125, 0, 0)',
+                                                fillStyle: 'rgb(60, 0, 0)',
+                                                lineWidth: 1,
+                                                millisPerLine: 250,
+                                                verticalSections: 6},
+                                         minValue: 1,
+                                         maxValue: 14,
+                                         resetBounds: false,
+                                        });
+
+        phGraph.addTimeSeries(line0, { strokeStyle: 'rgb(0, 255, 0)', fillStyle: 'rgba(0, 255, 0, 0.4)', lineWidth: 3 });
+
+        phGraph.streamTo(document.getElementById("phGraph"));
+        
+        var salinityGraph = new SmoothieChart({grid: {strokeStyle: 'rgb(125, 0, 0)',
+                                                 fillStyle: 'rgb(60, 0, 0)',
+                                                 lineWidth: 1,
+                                                 millisPerLine: 250,
+                                                 verticalSections: 6},
+                                          minValue: 50,
+                                          maxValue: 100,
+                                          resetBounds: false,
+                                          //interpolation: "line"
+                                          });
+
+        salinityGraph.addTimeSeries(line1, { strokeStyle: 'rgb(0, 0, 255)', fillStyle: 'rgba(0, 0, 255, 0.4)', lineWidth: 3 });
+
+        salinityGraph.streamTo(document.getElementById("salinityGraph"));
+        
+        var parGraph = new SmoothieChart({grid: {strokeStyle: 'rgb(125, 0, 0)',
+                                                 fillStyle: 'rgb(60, 0, 0)',
+                                                 lineWidth: 1,
+                                                 millisPerLine: 250,
+                                                 verticalSections: 6},
+                                          minValue: 100,
+                                          maxValue: 700,
+                                          resetBounds: false,
+                                          //interpolation: "line"
+                                          });
+
+        parGraph.addTimeSeries(line2, { strokeStyle: 'rgb(255, 255, 0)', fillStyle: 'rgba(255, 255, 0, 0.4)', lineWidth: 3 });
+
+        parGraph.streamTo(document.getElementById("parGraph"));
+        
+        var tempGraph = new SmoothieChart({grid: {strokeStyle: 'rgb(125, 0, 0)',
+                                                 fillStyle: 'rgb(60, 0, 0)',
+                                                 lineWidth: 1,
+                                                 millisPerLine: 250,
+                                                 verticalSections: 6},
+                                          minValue: 50,
+                                          maxValue: 100,
+                                          resetBounds: false,
+                                          //interpolation: "line"
+                                          });
+
+        tempGraph.addTimeSeries(line3, { strokeStyle: 'rgb(255, 0, 0)', fillStyle: 'rgba(255, 0, 0, 0.4)', lineWidth: 3 });
+
+        tempGraph.streamTo(document.getElementById("tempGraph"));
+
+
+        // the URL of the WAMP Router
+        //
+        var wsuri;
+        if (document.location.origin == "file://") {
+           wsuri = "ws://localhost:8080/ws";
+        } else {
+           wsuri = "ws://" + document.location.hostname + ":8080";
+        }
+        
+        // connect to WAMP server
+        //
+        connection = new autobahn.Connection({
+           url: wsuri,
+           realm: 'realm1'
+        });
+
+        connection.onopen = function (new_session) {
+            console.log("connected to " + wsuri);
+
+            session = new_session;
+            session.subscribe("com.aquapointe.ondata", onData);
+            session.subscribe("com.aquapointe.onnewhost", onNewHost);
+            
+            // Determine if the user has properly logged in. If not return them to the login page
+            validateToken()
+            populateName()
+        };
+        
+        connection.onclose = function (reason, details) {
+            console.log("connection gone", reason, details);
+            session = null;
+         };
+
+        connection.open();
+     };
+  </script>
+  <style>
+    #menu_icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+    
+    #menu_icon:hover, #config_menu li:hover {
+        cursor: pointer;
+    }
+    
+    #config_menu {
+        height: 190px;
+        position: absolute;
+        top: 44px;
+        right: 44px;
+        background-color: #839496;
+        border-radius: 5px;
+        box-shadow: 5px 5px 3px #303030;
+        font-size: 16pt;
+    }
+    
+    #config_menu li {
+        width: 100%;
+        padding: 5px;
+        color: #073642;
+    }
+    
+    #config_menu li:hover {
+        color: #dc322f;
+    }
+    
+    
+  </style>
+</head>
+<body>
+    <div id="content">
+        <div id="content_container">
+            <div id="title_container">
+                <img id="menu_icon" src="images/gear.png" width="24" alt="Settings" onclick="showMenu()">
+                <h1>AquaPointe</h1>
+            </div><!--end title container-->
+            <div class="one_third" style="text-align: center;">
+                <h2>pH</h2>
+                <h3 id="phValue">Value</h3>
+                <canvas id="phGraph" width="300" height="150"></canvas>
+                <br>
+                <br>
+                <h2>PAR</h2>
+                <h3 id="parValue">Value</h3>
+                <canvas id="parGraph" width="300" height="150"></canvas>
+            </div>
+            <div class="one_third" style="text-align: center;">
+                <select id="tank_selector" name="tank_selection" onchange="selectionChanged()">
+                    <option value="">AquaPointe</option>
+                </select>
+                <h3 id="description"></h3>
+                <br>
+                <br>
+                <img src="images/waterdrop.png" width="150" alt="water drop">
+                <br>
+                <br>
+                <br>
+                <h2>Flow</h2>
+                <h3 id="flowValue">Value</h3>
+            </div>
+            <div class="one_third" style="text-align: center;">
+                <h2>Salinity</h2>
+                <h3 id="salValue">Value</h3>
+                <canvas id="salinityGraph" width="300" height="150"></canvas>
+                <br>
+                <br>
+                <h2>Temperature</h2>
+                <h3 id="tempValue">Value</h3>
+                <canvas id="tempGraph" width="300" height="150"></canvas>
+            </div>
+            <div class="resetColumnSet"></div>
+            <br>
+            <img src="images/grass.png" width="960" alt="Waves">
+        </div><!--end content_container-->
+    </div><!--end content-->
+    <section id="config_menu">
+        <h4>Menu</h4>  
+        <ul>
+            <li onclick="downloadCSV()">Download Historical Data</li>
+            <li onclick="configureDevice()">Configure Device Options</li>
+            <li onclick="configureNetwork()">Configure Network Settings</li>
+            <li onclick="changePassword()">Change Password</li>
+            <li onclick="logout()">Logout</li>
+        </ul>
+    </section><!--end section-->        
+</body>
+</html>

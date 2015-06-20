@@ -1,0 +1,92 @@
+@charset "UTF-8";
+
+/* STRUCTURE
+   This CSS document contains all the page structure 
+   coding for the primary DIV tags.
+*/
+
+body {
+	background-color: #073642;
+}
+
+h3 {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+form {
+    margin-left: auto; 
+    margin-right: auto;
+    margin-top: 50px;
+    margin-bottom: 50px;   
+}
+
+input {
+    border: 0px;
+    border-radius: 5px;
+    padding-left: 5px;
+    background: #839496;
+}
+
+input.submit {
+    border: 0px;
+    border-radius: 5px;
+    color: #073642;
+    background: #839496;
+}
+
+select {
+        border: 1px solid #073642;
+        border-radius: 5px;
+        padding-left: 5px;
+        padding-right: 5px;
+        background: url(../images/select_arrow.png) no-repeat #839496;
+        background-position: 230px 5px;
+        width: 250px;
+        -webkit-appearance: none;
+        -moz-appearance: none; 
+}
+
+.label {
+    margin: 0px;
+    padding: 0px;
+    display: inline-block;
+    text-align: right;
+}
+
+.center {
+    text-align: center;
+}
+
+#content_container {
+    width: 960px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 50px;
+	margin-bottom: 50px;
+	padding-top: 20px;
+	border-radius: 5px;
+	background-color: #454547;
+	box-shadow: 5px 5px 3px #202020;
+}
+
+#title_container {
+	text-align: center;
+	height: 120px;
+}
+
+#status_container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 470px;
+    height: 75px;
+}
+
+#status_message, #network_status_message {
+    text-align: center;
+}
+
+#content {
+	background-color: #073642;
+}
+        
